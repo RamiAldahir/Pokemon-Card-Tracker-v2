@@ -366,13 +366,6 @@ button:focus {
   margin: 0 0 7px;
 }
 
-.modal-help {
-  color: #666;
-  font-size: 13px;
-  line-height: 1.45;
-  margin: 0 0 20px;
-}
-
 .modal-close {
   position: absolute;
   right: 12px;

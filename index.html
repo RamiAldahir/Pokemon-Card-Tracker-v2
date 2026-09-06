@@ -79,10 +79,9 @@
     <div class="modal-card github-modal-card">
       <button id="closeGithubButton" class="modal-close" type="button" aria-label="Close">×</button>
       <h2 id="githubTitle">GitHub Sync</h2>
-      <p class="modal-help">GitHub Pages cannot write files by itself. This optional sync uses the GitHub Contents API. For a personal prototype, use a fine-grained token restricted to this repository with <strong>Contents: Read and write</strong>.</p>
       <form id="githubForm">
-        <label>Repository owner
-          <input id="githubOwner" type="text" placeholder="your-github-name" required>
+        <!-- <label>Repository owner
+          <input id="githubOwner" type="text" placeholder="RamiAldahir" required>
         </label>
         <label>Repository name
           <input id="githubRepo" type="text" placeholder="pokemon-collection" required>
@@ -92,14 +91,13 @@
         </label>
         <label>JSON file path
           <input id="githubPath" type="text" value="users.json" required>
-        </label>
+        </label> -->
         <label>GitHub fine-grained token
           <input id="githubToken" type="password" placeholder="github_pat_…" autocomplete="off" required>
         </label>
         <label class="remember-row"><input id="rememberGithubToken" type="checkbox"> Remember token on this device</label>
-        <p class="modal-warning">⚠ A token saved in browser storage is not suitable for a public/shared computer. GitHub Sync is intended for your personal tracker.</p>
         <p id="githubError" class="login-error" aria-live="polite"></p>
-        <button type="submit" class="login-submit">Save & Test GitHub Sync</button>
+        <button type="submit" class="login-submit">Save & Sync to GitHub</button>
       </form>
     </div>
   </div>

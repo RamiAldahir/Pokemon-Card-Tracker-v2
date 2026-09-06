@@ -1,7 +1,16 @@
 const USERS_FILE = "users.json";
 const LOCAL_COLLECTION_PREFIX = "pokemon-tracker-collection-";
 const LOCAL_TOKEN_KEY = "pokemon-tracker-github-token";
-const LOCAL_GITHUB_CONFIG_KEY = "pokemon-tracker-github-config";
+
+const GITHUB_SYNC_DELAY = 2000;
+let githubSyncTimer = null;
+
+const GITHUB_CONFIG = {
+  owner: "RamiAldahir",
+  repo: "Pokemon-Card-Tracxker-v2",
+  branch: "main",
+  path: "users.json"
+};
 
 const GENERATIONS = {
   1: { name: "Kanto", start: 1, end: 151, ids: null },
@@ -52,19 +61,13 @@ const els = {
   loginButton: document.getElementById("loginButton"),
   logoutButton: document.getElementById("logoutButton"),
   loggedInUser: document.getElementById("loggedInUser"),
-  loginModal: document.getElementById("loginModal"),
   closeLoginButton: document.getElementById("closeLoginButton"),
   loginForm: document.getElementById("loginForm"),
   username: document.getElementById("usernameInput"),
   password: document.getElementById("passwordInput"),
   loginError: document.getElementById("loginError"),
-  githubModal: document.getElementById("githubModal"),
   closeGithubButton: document.getElementById("closeGithubButton"),
   githubForm: document.getElementById("githubForm"),
-  githubOwner: document.getElementById("githubOwner"),
-  githubRepo: document.getElementById("githubRepo"),
-  githubBranch: document.getElementById("githubBranch"),
-  githubPath: document.getElementById("githubPath"),
   githubToken: document.getElementById("githubToken"),
   rememberGithubToken: document.getElementById("rememberGithubToken"),
   githubError: document.getElementById("githubError"),
@@ -117,15 +120,30 @@ function setCollected(id, value) {
 
 function persistCollection() {
   if (!state.currentUser) return;
-  const key = LOCAL_COLLECTION_PREFIX + state.currentUser;
-  localStorage.setItem(key, JSON.stringify(getCollection()));
-  if (state.github) void syncToGitHub();
+
+  localStorage.setItem(
+    LOCAL_COLLECTION_PREFIX + state.currentUser,
+    JSON.stringify(getCollection())
+  );
+
+  scheduleGithubSync();
+}
+
+function scheduleGithubSync() {
+  if (!state.github || !state.currentUser) return;
+
+  clearTimeout(githubSyncTimer);
+  githubSyncTimer = setTimeout(() => {
+    githubSyncTimer = null;
+    void syncToGitHub();
+  }, GITHUB_SYNC_DELAY);
 }
 
 function restoreLocalCollection(username) {
   try {
     const raw = localStorage.getItem(LOCAL_COLLECTION_PREFIX + username);
     if (!raw) return;
+
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       state.users[username].collection = parsed;
@@ -139,6 +157,7 @@ function updateHeader() {
   const generation = GENERATIONS[state.generation];
   const shown = state.pokemon.length;
   const collectedCount = state.pokemon.filter(p => isCollected(p.id)).length;
+
   els.title.textContent = `${generation.name}: ${collectedCount}/${shown || generationIds(generation).length}`;
 
   if (state.currentUser) {
@@ -159,8 +178,10 @@ function pokemonImage(id) {
 
 async function fetchPokemon(id) {
   if (state.cache.has(id)) return state.cache.get(id);
+
   const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${id}`);
   if (!response.ok) throw new Error(`Could not load Pokémon #${id}`);
+
   const raw = await response.json();
   const pokemon = {
     id: raw.id,
@@ -168,6 +189,7 @@ async function fetchPokemon(id) {
     types: raw.types.sort((a, b) => a.slot - b.slot).map(item => item.type.name),
     image: pokemonImage(raw.id)
   };
+
   state.cache.set(id, pokemon);
   return pokemon;
 }
@@ -175,19 +197,23 @@ async function fetchPokemon(id) {
 function createLoadingCards(count) {
   els.grid.innerHTML = "";
   const fragment = document.createDocumentFragment();
+
   for (let i = 0; i < Math.min(count, 35); i++) {
     const card = document.createElement("div");
     card.className = "loading-card";
     card.innerHTML = `<div class="pokeball-loader" aria-label="Loading Pokémon" role="img"><span></span></div>`;
     fragment.appendChild(card);
   }
+
   els.grid.appendChild(fragment);
 }
 
 function getCardBackground(types) {
   if (types.length === 1) return TYPE_COLORS[types[0]] || "#cccccc";
+
   const first = TYPE_COLORS[types[0]] || "#cccccc";
   const second = TYPE_COLORS[types[1]] || first;
+
   return `linear-gradient(135deg, ${first} 0%, ${first} 52%, ${second} 52%, ${second} 100%)`;
 }
 
@@ -197,14 +223,18 @@ function prettyType(type) {
 
 function regionForId(id) {
   for (const [key, generation] of Object.entries(GENERATIONS)) {
-    if (generation.ids ? generation.ids.includes(id) : id >= generation.start && id <= generation.end) return generation.name;
+    if (generation.ids ? generation.ids.includes(id) : id >= generation.start && id <= generation.end) {
+      return generation.name;
+    }
   }
+
   return "Unknown";
 }
 
 function createCard(pokemon) {
   const card = document.createElement("article");
   const collected = isCollected(pokemon.id);
+
   card.className = `pokemon-card ${collected ? "collected" : "not-collected"}`;
   card.style.background = collected ? getCardBackground(pokemon.types) : "#b4b4b4";
 
@@ -214,13 +244,16 @@ function createCard(pokemon) {
   checkbox.checked = collected;
   checkbox.setAttribute("aria-label", `Mark ${pokemon.name} as collected`);
   checkbox.title = state.currentUser ? "In collection" : "Log in to manage your collection";
+
   checkbox.addEventListener("change", () => {
     if (setCollected(pokemon.id, checkbox.checked)) {
       card.classList.toggle("collected", checkbox.checked);
       card.classList.toggle("not-collected", !checkbox.checked);
       card.style.background = checkbox.checked ? getCardBackground(pokemon.types) : "#b4b4b4";
       image.classList.toggle("grayscale", !checkbox.checked);
-    } else checkbox.checked = false;
+    } else {
+      checkbox.checked = false;
+    }
   });
 
   const image = document.createElement("img");
@@ -240,6 +273,7 @@ function createCard(pokemon) {
 
   const types = document.createElement("div");
   types.className = "type-labels";
+
   pokemon.types.forEach(type => {
     const label = document.createElement("span");
     label.className = "type-label";
@@ -253,6 +287,7 @@ function createCard(pokemon) {
 
 function renderCards() {
   els.grid.innerHTML = "";
+
   if (!state.filteredPokemon.length) {
     const noResults = document.createElement("div");
     noResults.className = "no-results";
@@ -261,9 +296,11 @@ function renderCards() {
     updateHeader();
     return;
   }
+
   const fragment = document.createDocumentFragment();
   state.filteredPokemon.forEach(pokemon => fragment.appendChild(createCard(pokemon)));
   els.grid.appendChild(fragment);
+
   updateHeader();
 }
 
@@ -280,8 +317,8 @@ function applySearch() {
     return;
   }
 
-  // Search the entire Pokédex, not just the selected generation.
   state.pokemon = state.allPokemon;
+
   state.filteredPokemon = state.allPokemon.filter(pokemon => {
     const haystack = `${pokemon.name} ${pokemon.id} ${regionForId(pokemon.id)} ${pokemon.types.join(" ")}`.toLowerCase();
     return terms.every(term => haystack.includes(term));
@@ -294,8 +331,10 @@ function applySearch() {
 
 async function loadGeneration(generationKey) {
   state.generation = generationKey;
+
   const generation = GENERATIONS[state.generation];
   const ids = generationIds(generation);
+
   state.loading = true;
   updateHeader();
   createLoadingCards(ids.length);
@@ -304,15 +343,16 @@ async function loadGeneration(generationKey) {
   try {
     const results = [];
     const batchSize = 20;
+
     for (let i = 0; i < ids.length; i += batchSize) {
       const batchResults = await Promise.all(ids.slice(i, i + batchSize).map(fetchPokemon));
       results.push(...batchResults);
       els.status.textContent = `Loading ${generation.name}… ${Math.min(i + batchSize, ids.length)}/${ids.length}`;
     }
 
-    // Add newly loaded Pokémon to the global search index.
     const byId = new Map(state.allPokemon.map(p => [p.id, p]));
     results.forEach(p => byId.set(p.id, p));
+
     state.allPokemon = [...byId.values()].sort((a, b) => a.id - b.id);
     state.pokemon = results.sort((a, b) => a.id - b.id);
     state.filteredPokemon = [...state.pokemon];
@@ -329,17 +369,24 @@ async function loadGeneration(generationKey) {
 
 async function ensureAllPokemonLoaded() {
   const missing = [];
-  for (let id = 1; id <= 1025; id++) if (!state.cache.has(id)) missing.push(id);
+
+  for (let id = 1; id <= 1025; id++) {
+    if (!state.cache.has(id)) missing.push(id);
+  }
 
   if (!missing.length) return;
+
   els.status.textContent = `Loading Pokédex for search… 0/${missing.length}`;
 
   const batchSize = 25;
+
   for (let i = 0; i < missing.length; i += batchSize) {
     const batch = missing.slice(i, i + batchSize);
     const results = await Promise.all(batch.map(fetchPokemon));
     const byId = new Map(state.allPokemon.map(p => [p.id, p]));
+
     results.forEach(p => byId.set(p.id, p));
+
     state.allPokemon = [...byId.values()].sort((a, b) => a.id - b.id);
     els.status.textContent = `Loading Pokédex for search… ${Math.min(i + batchSize, missing.length)}/${missing.length}`;
   }
@@ -349,23 +396,32 @@ function openLogin() {
   els.loginError.textContent = "";
   els.username.value = "";
   els.password.value = "";
-  els.loginModal.classList.remove("hidden");
+
+  const modal = document.getElementById("loginModal");
+  if (modal) modal.classList.remove("hidden");
+
   setTimeout(() => els.username.focus(), 0);
 }
 
-function closeLogin() { els.loginModal.classList.add("hidden"); }
+function closeLogin() {
+  const modal = document.getElementById("loginModal");
+  if (modal) modal.classList.add("hidden");
+}
 
 function login(username, password) {
   const user = state.users[username];
+
   if (!user || user.password !== password) {
     els.loginError.textContent = "Incorrect username or password.";
     return;
   }
+
   state.currentUser = username;
   restoreLocalCollection(username);
   closeLogin();
   updateHeader();
   renderCards();
+
   showToast(`Logged in as ${username}.`);
 }
 
@@ -376,14 +432,25 @@ function logout() {
   showToast("Logged out.");
 }
 
-function saveCollection() {
+async function saveCollection() {
   if (!state.currentUser) {
     showToast("Log in first to save your collection.");
     return;
   }
-  localStorage.setItem(LOCAL_COLLECTION_PREFIX + state.currentUser, JSON.stringify(getCollection()));
-  if (state.github) void syncToGitHub();
-  else showToast("Collection saved on this device.");
+
+  clearTimeout(githubSyncTimer);
+  githubSyncTimer = null;
+
+  localStorage.setItem(
+    LOCAL_COLLECTION_PREFIX + state.currentUser,
+    JSON.stringify(getCollection())
+  );
+
+  if (state.github) {
+    await syncToGitHub();
+  } else {
+    showToast("Collection saved on this device.");
+  }
 }
 
 function exportCollection() {
@@ -400,57 +467,93 @@ function exportCollection() {
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
-  worksheet["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 16 }];
+  worksheet["!cols"] = [
+    { wch: 12 },
+    { wch: 18 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 16 }
+  ];
+
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Collection");
+
   const username = state.currentUser.replace(/[^a-z0-9_-]/gi, "_");
   XLSX.writeFile(workbook, `${username}_Pokemon_Collection.xlsx`);
+
   showToast("Excel file exported.");
 }
 
 function loadGithubConfig() {
-  try {
-    const raw = localStorage.getItem(LOCAL_GITHUB_CONFIG_KEY);
-    if (raw) state.github = JSON.parse(raw);
-    const token = localStorage.getItem(LOCAL_TOKEN_KEY);
-    if (state.github && token) state.github.token = token;
-  } catch (error) { console.warn("Could not load GitHub configuration", error); }
+  const token = localStorage.getItem(LOCAL_TOKEN_KEY);
+
+  state.github = {
+    ...GITHUB_CONFIG,
+    token: token || ""
+  };
 }
 
 function openGithub() {
-  const config = state.github || {};
-  els.githubOwner.value = config.owner || "";
-  els.githubRepo.value = config.repo || "";
-  els.githubBranch.value = config.branch || "main";
-  els.githubPath.value = config.path || USERS_FILE;
-  els.githubToken.value = config.token || "";
+  els.githubToken.value = state.github?.token || "";
   els.rememberGithubToken.checked = Boolean(localStorage.getItem(LOCAL_TOKEN_KEY));
   els.githubError.textContent = "";
-  els.githubModal.classList.remove("hidden");
-  setTimeout(() => els.githubOwner.focus(), 0);
+
+  const modal = document.getElementById("githubModal");
+  if (modal) modal.classList.remove("hidden");
+
+  setTimeout(() => els.githubToken.focus(), 0);
 }
 
-function closeGithub() { els.githubModal.classList.add("hidden"); }
+function closeGithub() {
+  const modal = document.getElementById("githubModal");
+  if (modal) modal.classList.add("hidden");
+}
 
 async function getGithubFile(config) {
   const url = `https://api.github.com/repos/${encodeURIComponent(config.owner)}/${encodeURIComponent(config.repo)}/contents/${config.path.split("/").map(encodeURIComponent).join("/")}?ref=${encodeURIComponent(config.branch)}`;
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${config.token}`, Accept: "application/vnd.github+json" } });
-  if (!response.ok) throw new Error(`GitHub returned ${response.status} while reading ${config.path}.`);
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${config.token}`,
+      Accept: "application/vnd.github+json"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`GitHub returned ${response.status} while reading ${config.path}.`);
+  }
+
   return response.json();
 }
 
 async function syncToGitHub() {
-  if (!state.github || !state.currentUser || state.githubSaving) return;
+  if (!state.github || !state.currentUser) return;
+
+  if (!state.github.token) {
+    showToast("GitHub token not configured.");
+    return;
+  }
+
+  if (state.githubSaving) {
+    scheduleGithubSync();
+    return;
+  }
+
   state.githubSaving = true;
+
   try {
     const file = await getGithubFile(state.github);
     const users = JSON.parse(atob(file.content.replace(/\n/g, "")));
+
     if (!users[state.currentUser]) users[state.currentUser] = {};
     users[state.currentUser].collection = getCollection();
 
     const json = JSON.stringify(users, null, 2) + "\n";
     const content = btoa(unescape(encodeURIComponent(json)));
+
     const url = `https://api.github.com/repos/${encodeURIComponent(state.github.owner)}/${encodeURIComponent(state.github.repo)}/contents/${state.github.path.split("/").map(encodeURIComponent).join("/")}`;
+
     const response = await fetch(url, {
       method: "PUT",
       headers: {
@@ -465,10 +568,12 @@ async function syncToGitHub() {
         branch: state.github.branch
       })
     });
+
     if (!response.ok) {
       const detail = await response.text();
       throw new Error(`GitHub returned ${response.status}: ${detail.slice(0, 180)}`);
     }
+
     showToast("Collection synced to GitHub.");
   } catch (error) {
     console.error(error);
@@ -486,17 +591,29 @@ els.generation.addEventListener("change", event => {
 
 els.searchButton.addEventListener("click", async () => {
   if (els.searchInput.value.trim() && state.allPokemon.length < 1025) {
-    try { await ensureAllPokemonLoaded(); } catch (error) { console.error(error); }
+    try {
+      await ensureAllPokemonLoaded();
+    } catch (error) {
+      console.error(error);
+    }
   }
+
   applySearch();
 });
 
 els.searchInput.addEventListener("keydown", async event => {
   if (event.key !== "Enter") return;
+
   event.preventDefault();
+
   if (els.searchInput.value.trim() && state.allPokemon.length < 1025) {
-    try { await ensureAllPokemonLoaded(); } catch (error) { console.error(error); }
+    try {
+      await ensureAllPokemonLoaded();
+    } catch (error) {
+      console.error(error);
+    }
   }
+
   applySearch();
 });
 
@@ -521,28 +638,35 @@ els.loginForm.addEventListener("submit", event => {
 
 els.githubForm.addEventListener("submit", async event => {
   event.preventDefault();
-  els.githubError.textContent = "";
-  const config = {
-    owner: els.githubOwner.value.trim(),
-    repo: els.githubRepo.value.trim(),
-    branch: els.githubBranch.value.trim() || "main",
-    path: els.githubPath.value.trim() || USERS_FILE,
-    token: els.githubToken.value.trim()
-  };
-  if (!config.owner || !config.repo || !config.token) {
-    els.githubError.textContent = "Please enter the repository owner, repository name and token.";
+
+  els.githubError.textContent = "Testing GitHub access…";
+
+  const token = els.githubToken.value.trim();
+
+  if (!token) {
+    els.githubError.textContent = "Please enter your GitHub token.";
     return;
   }
 
-  els.githubError.textContent = "Testing GitHub access…";
+  const config = {
+    ...GITHUB_CONFIG,
+    token
+  };
+
   try {
     await getGithubFile(config);
+
     state.github = config;
-    localStorage.setItem(LOCAL_GITHUB_CONFIG_KEY, JSON.stringify({ ...config, token: undefined }));
-    if (els.rememberGithubToken.checked) localStorage.setItem(LOCAL_TOKEN_KEY, config.token);
-    else localStorage.removeItem(LOCAL_TOKEN_KEY);
+
+    if (els.rememberGithubToken.checked) {
+      localStorage.setItem(LOCAL_TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(LOCAL_TOKEN_KEY);
+    }
+
     closeGithub();
-    showToast("GitHub Sync configured. Changes will sync automatically.");
+    showToast("GitHub Sync connected.");
+
     if (state.currentUser) await syncToGitHub();
   } catch (error) {
     console.error(error);
@@ -550,8 +674,13 @@ els.githubForm.addEventListener("submit", async event => {
   }
 });
 
-[els.loginModal, els.githubModal].forEach(modal => {
-  modal.addEventListener("click", event => { if (event.target === modal) modal.classList.add("hidden"); });
+const loginModal = document.getElementById("loginModal");
+const githubModal = document.getElementById("githubModal");
+
+[loginModal, githubModal].filter(Boolean).forEach(modal => {
+  modal.addEventListener("click", event => {
+    if (event.target === modal) modal.classList.add("hidden");
+  });
 });
 
 document.addEventListener("keydown", event => {
@@ -563,9 +692,14 @@ document.addEventListener("keydown", event => {
 
 async function init() {
   loadGithubConfig();
+
   try {
     const response = await fetch(USERS_FILE, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Could not load ${USERS_FILE}`);
+
+    if (!response.ok) {
+      throw new Error(`Could not load ${USERS_FILE}`);
+    }
+
     state.users = await response.json();
     Object.keys(state.users).forEach(restoreLocalCollection);
   } catch (error) {
@@ -573,6 +707,7 @@ async function init() {
     els.status.textContent = "Could not load users.json. Run the site through GitHub Pages or a local web server.";
     return;
   }
+
   updateHeader();
   await loadGeneration(1);
 }
