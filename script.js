@@ -238,7 +238,7 @@ function createCard(pokemon) {
   checkbox.checked = collected;
   checkbox.setAttribute("aria-label", `Mark ${pokemon.name} as collected`);
   checkbox.title = state.currentUser ? "In collection" : "Log in to manage your collection";
-  
+
   const image = document.createElement("img");
   image.className = `pokemon-image ${collected ? "" : "grayscale"}`;
   image.src = pokemon.image;
@@ -307,6 +307,7 @@ function createCard(pokemon) {
 
   card.append(checkbox, image, number, name, types);
   return card;
+}
 
 function renderCards() {
   els.grid.innerHTML = "";

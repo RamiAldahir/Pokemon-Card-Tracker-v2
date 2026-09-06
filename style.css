@@ -202,6 +202,12 @@ button:focus {
   justify-content: flex-start;
   position: relative;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
+  cursor: pointer;
+}
+
+.pokemon-card:focus-visible {
+  outline: 3px solid #333;
+  outline-offset: 2px;
 }
 
 .pokemon-card:hover {
