@@ -14,6 +14,7 @@
   "rami": {
     "password": "rami123",
     "collection": {
+      "1": true
     }
   }
 }
