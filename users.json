@@ -13,6 +13,8 @@
   },
   "rami": {
     "password": "rami123",
-    "collection": {}
+    "collection": {
+      "1": true
+    }
   }
 }
