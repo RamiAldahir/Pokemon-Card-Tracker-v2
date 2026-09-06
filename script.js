@@ -441,7 +441,6 @@ function login(username, password) {
   }
 
   state.currentUser = username;
-  restoreLocalCollection(username);
   closeLogin();
   updateHeader();
   renderCards();
@@ -719,7 +718,7 @@ async function init() {
     }
 
     state.users = await response.json();
-    Object.keys(state.users).forEach(restoreLocalCollection);
+    // Object.keys(state.users).forEach(restoreLocalCollection);
   } catch (error) {
     console.error(error);
     els.status.textContent = "Could not load users.json. Run the site through GitHub Pages or a local web server.";
