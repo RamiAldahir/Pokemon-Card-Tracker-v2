@@ -13,6 +13,10 @@
   },
   "Rami": {
     "password": "rami123",
-    "collection": {}
+    "collection": {
+      "1": true,
+      "2": true,
+      "3": true
+    }
   }
 }
