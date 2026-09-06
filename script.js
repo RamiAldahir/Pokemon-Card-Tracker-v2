@@ -684,7 +684,7 @@ els.githubForm.addEventListener("submit", async event => {
     closeGithub();
     showToast("GitHub Sync connected.");
 
-    if (state.currentUser) await syncToGitHub();
+    // if (state.currentUser) await syncToGitHub();
   } catch (error) {
     console.error(error);
     els.githubError.textContent = error.message || "Could not access the GitHub file.";
@@ -711,17 +711,17 @@ async function init() {
   loadGithubConfig();
 
   try {
-    const response = await fetch(USERS_FILE, { cache: "no-store" });
+    const usersUrl = `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${GITHUB_CONFIG.path}?t=${Date.now()}`;
+    const response = await fetch(usersUrl, { cache: "no-store" });
 
     if (!response.ok) {
       throw new Error(`Could not load ${USERS_FILE}`);
     }
 
     state.users = await response.json();
-    // Object.keys(state.users).forEach(restoreLocalCollection);
   } catch (error) {
     console.error(error);
-    els.status.textContent = "Could not load users.json. Run the site through GitHub Pages or a local web server.";
+    els.status.textContent = "Could not load users.json. Check your internet connection.";
     return;
   }
 
