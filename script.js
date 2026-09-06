@@ -540,8 +540,10 @@ async function getGithubFile(config) {
   });
 
   if (!response.ok) {
-    throw new Error(`GitHub returned ${response.status} while reading ${config.path}.`);
-  }
+    const detail = await response.text();
+    console.error("GitHub API error:", response.status, detail);
+    throw new Error(`GitHub returned ${response.status}: ${detail}`);
+    }
 
   return response.json();
 }
