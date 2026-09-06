@@ -2,9 +2,6 @@ const USERS_FILE = "users.json";
 const LOCAL_COLLECTION_PREFIX = "pokemon-tracker-collection-";
 const LOCAL_TOKEN_KEY = "pokemon-tracker-github-token";
 
-const GITHUB_SYNC_DELAY = 2000;
-let githubSyncTimer = null;
-
 const GITHUB_CONFIG = {
   owner: "RamiAldahir",
   repo: "Pokemon-Card-Tracxker-v2",
@@ -83,6 +80,7 @@ function showToast(message) {
 
 function generationIds(generation) {
   if (Array.isArray(generation.ids)) return [...generation.ids];
+
   const ids = [];
   for (let id = generation.start; id <= generation.end; id++) ids.push(id);
   return ids;
@@ -110,11 +108,13 @@ function setCollected(id, value) {
   }
 
   const collection = getCollection();
+
   if (value) collection[String(id)] = true;
   else delete collection[String(id)];
 
   persistCollection();
   updateHeader();
+
   return true;
 }
 
@@ -125,18 +125,6 @@ function persistCollection() {
     LOCAL_COLLECTION_PREFIX + state.currentUser,
     JSON.stringify(getCollection())
   );
-
-  scheduleGithubSync();
-}
-
-function scheduleGithubSync() {
-  if (!state.github || !state.currentUser) return;
-
-  clearTimeout(githubSyncTimer);
-  githubSyncTimer = setTimeout(() => {
-    githubSyncTimer = null;
-    void syncToGitHub();
-  }, GITHUB_SYNC_DELAY);
 }
 
 function restoreLocalCollection(username) {
@@ -145,6 +133,7 @@ function restoreLocalCollection(username) {
     if (!raw) return;
 
     const parsed = JSON.parse(raw);
+
     if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
       state.users[username].collection = parsed;
     }
@@ -183,6 +172,7 @@ async function fetchPokemon(id) {
   if (!response.ok) throw new Error(`Could not load Pokémon #${id}`);
 
   const raw = await response.json();
+
   const pokemon = {
     id: raw.id,
     name: raw.name,
@@ -196,6 +186,7 @@ async function fetchPokemon(id) {
 
 function createLoadingCards(count) {
   els.grid.innerHTML = "";
+
   const fragment = document.createDocumentFragment();
 
   for (let i = 0; i < Math.min(count, 35); i++) {
@@ -438,13 +429,7 @@ async function saveCollection() {
     return;
   }
 
-  clearTimeout(githubSyncTimer);
-  githubSyncTimer = null;
-
-  localStorage.setItem(
-    LOCAL_COLLECTION_PREFIX + state.currentUser,
-    JSON.stringify(getCollection())
-  );
+  persistCollection();
 
   if (state.github) {
     await syncToGitHub();
@@ -467,6 +452,7 @@ function exportCollection() {
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
+
   worksheet["!cols"] = [
     { wch: 12 },
     { wch: 18 },
@@ -535,10 +521,7 @@ async function syncToGitHub() {
     return;
   }
 
-  if (state.githubSaving) {
-    scheduleGithubSync();
-    return;
-  }
+  if (state.githubSaving) return;
 
   state.githubSaving = true;
 
