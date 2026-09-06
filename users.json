@@ -1,0 +1,19 @@
+{
+  "test": {
+    "password": "tester",
+    "collection": {
+      "1": true,
+      "2": true,
+      "3": true,
+      "7": true,
+      "8": true,
+      "9": true,
+      "25": true
+    }
+  },
+  "rami": {
+    "password": "rami123",
+    "collection": {
+    }
+  }
+}

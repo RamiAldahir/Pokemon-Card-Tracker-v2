@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#333333">
+  <title>Pokémon Collection Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="title-row">
+      <h1 id="collectionTitle">Kanto: 0/151</h1>
+      <div class="user-area">
+        <span id="loggedInUser" class="logged-in-user hidden"></span>
+        <button id="loginButton" class="header-button">Login</button>
+        <button id="logoutButton" class="header-button hidden">Logout</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <label class="select-wrap">
+        <select id="generationSelect" aria-label="Choose generation">
+          <option value="1">Kanto / Generation I</option>
+          <option value="2">Johto / Generation II</option>
+          <option value="3">Hoenn / Generation III</option>
+          <option value="4">Sinnoh / Generation IV</option>
+          <option value="5">Unova / Generation V</option>
+          <option value="6">Kalos / Generation VI</option>
+          <option value="7">Alola / Generation VII</option>
+          <option value="8">Galar / Generation VIII</option>
+          <option value="hisui">Hisui / Legends: Arceus</option>
+          <option value="9">Paldea / Generation IX</option>
+        </select>
+      </label>
+
+      <button id="exportButton" class="action-button">Export</button>
+      <button id="saveButton" class="action-button secondary">Save</button>
+      <button id="githubButton" class="action-button github-button">GitHub Sync</button>
+    </div>
+
+    <div class="search-row">
+      <input id="searchInput" type="search" placeholder="Search Pokémon by name or Pokédex number..." autocomplete="off">
+      <button id="searchButton" class="search-button">Search</button>
+      <button id="clearSearchButton" class="clear-button">Clear</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="statusMessage" class="status-message" aria-live="polite">Loading Pokémon…</div>
+    <section id="pokemonGrid" class="pokemon-grid" aria-label="Pokémon collection"></section>
+  </main>
+
+  <div id="loginModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <div class="modal-card">
+      <button id="closeLoginButton" class="modal-close" type="button" aria-label="Close">×</button>
+      <h2 id="loginTitle">Login</h2>
+      <p class="modal-help">This prototype loads users from <code>users.json</code>. It is not secure authentication.</p>
+
+      <form id="loginForm">
+        <label>
+          Username
+          <input id="usernameInput" type="text" required autocomplete="username">
+        </label>
+
+        <label>
+          Password
+          <input id="passwordInput" type="password" required autocomplete="current-password">
+        </label>
+
+        <p id="loginError" class="login-error" aria-live="polite"></p>
+        <button type="submit" class="login-submit">Login</button>
+      </form>
+    </div>
+  </div>
+
+
+  <div id="githubModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="githubTitle">
+    <div class="modal-card github-modal-card">
+      <button id="closeGithubButton" class="modal-close" type="button" aria-label="Close">×</button>
+      <h2 id="githubTitle">GitHub Sync</h2>
+      <p class="modal-help">GitHub Pages cannot write files by itself. This optional sync uses the GitHub Contents API. For a personal prototype, use a fine-grained token restricted to this repository with <strong>Contents: Read and write</strong>.</p>
+      <form id="githubForm">
+        <label>Repository owner
+          <input id="githubOwner" type="text" placeholder="your-github-name" required>
+        </label>
+        <label>Repository name
+          <input id="githubRepo" type="text" placeholder="pokemon-collection" required>
+        </label>
+        <label>Branch
+          <input id="githubBranch" type="text" value="main" required>
+        </label>
+        <label>JSON file path
+          <input id="githubPath" type="text" value="users.json" required>
+        </label>
+        <label>GitHub fine-grained token
+          <input id="githubToken" type="password" placeholder="github_pat_…" autocomplete="off" required>
+        </label>
+        <label class="remember-row"><input id="rememberGithubToken" type="checkbox"> Remember token on this device</label>
+        <p class="modal-warning">⚠ A token saved in browser storage is not suitable for a public/shared computer. GitHub Sync is intended for your personal tracker.</p>
+        <p id="githubError" class="login-error" aria-live="polite"></p>
+        <button type="submit" class="login-submit">Save & Test GitHub Sync</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" aria-live="polite"></div>
+
+  <!-- SheetJS is used only when Export is pressed. -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
