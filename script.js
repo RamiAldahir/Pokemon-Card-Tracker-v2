@@ -4,7 +4,7 @@ const LOCAL_TOKEN_KEY = "pokemon-tracker-github-token";
 
 const GITHUB_CONFIG = {
   owner: "RamiAldahir",
-  repo: "Pokemon-Card-Tracxker-v2",
+  repo: "Pokemon-Card-Tracker-v2",
   branch: "main",
   path: "users.json"
 };
