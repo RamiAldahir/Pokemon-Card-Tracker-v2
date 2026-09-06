@@ -228,6 +228,9 @@ function createCard(pokemon) {
 
   card.className = `pokemon-card ${collected ? "collected" : "not-collected"}`;
   card.style.background = collected ? getCardBackground(pokemon.types) : "#b4b4b4";
+  card.setAttribute("role", "button");
+  card.setAttribute("tabindex", "0");
+  card.setAttribute("aria-label", `${collected ? "Remove" : "Add"} ${pokemon.name} ${collected ? "from" : "to"} your collection`);
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
@@ -235,18 +238,7 @@ function createCard(pokemon) {
   checkbox.checked = collected;
   checkbox.setAttribute("aria-label", `Mark ${pokemon.name} as collected`);
   checkbox.title = state.currentUser ? "In collection" : "Log in to manage your collection";
-
-  checkbox.addEventListener("change", () => {
-    if (setCollected(pokemon.id, checkbox.checked)) {
-      card.classList.toggle("collected", checkbox.checked);
-      card.classList.toggle("not-collected", !checkbox.checked);
-      card.style.background = checkbox.checked ? getCardBackground(pokemon.types) : "#b4b4b4";
-      image.classList.toggle("grayscale", !checkbox.checked);
-    } else {
-      checkbox.checked = false;
-    }
-  });
-
+  
   const image = document.createElement("img");
   image.className = `pokemon-image ${collected ? "" : "grayscale"}`;
   image.src = pokemon.image;
@@ -272,9 +264,49 @@ function createCard(pokemon) {
     types.appendChild(label);
   });
 
+  function toggleCollection() {
+    const newValue = !checkbox.checked;
+
+    if (!setCollected(pokemon.id, newValue)) return;
+
+    checkbox.checked = newValue;
+    card.classList.toggle("collected", newValue);
+    card.classList.toggle("not-collected", !newValue);
+    card.style.background = newValue ? getCardBackground(pokemon.types) : "#b4b4b4";
+    image.classList.toggle("grayscale", !newValue);
+    card.setAttribute("aria-label", `${newValue ? "Remove" : "Add"} ${pokemon.name} ${newValue ? "from" : "to"} your collection`);
+  }
+
+  checkbox.addEventListener("click", event => {
+    event.stopPropagation();
+  });
+
+  checkbox.addEventListener("change", () => {
+    const newValue = checkbox.checked;
+
+    if (!setCollected(pokemon.id, newValue)) {
+      checkbox.checked = !newValue;
+      return;
+    }
+
+    card.classList.toggle("collected", newValue);
+    card.classList.toggle("not-collected", !newValue);
+    card.style.background = newValue ? getCardBackground(pokemon.types) : "#b4b4b4";
+    image.classList.toggle("grayscale", !newValue);
+    card.setAttribute("aria-label", `${newValue ? "Remove" : "Add"} ${pokemon.name} ${newValue ? "from" : "to"} your collection`);
+  });
+
+  card.addEventListener("click", toggleCollection);
+
+  card.addEventListener("keydown", event => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      toggleCollection();
+    }
+  });
+
   card.append(checkbox, image, number, name, types);
   return card;
-}
 
 function renderCards() {
   els.grid.innerHTML = "";
